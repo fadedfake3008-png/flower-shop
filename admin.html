@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 Catalog Hoa Đẹp - Quản Trị Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .flower-card { transition: all 0.3s; }
+        .flower-card:hover { transform: translateY(-5px); }
+        .tag { display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 12px; font-size: 11px; }
+        .tag-hot { background: #ff5722; color: white; }
+        .tag-new { background: #4caf50; color: white; }
+        .tag-sale { background: #ff9800; color: white; }
+        .low-stock { border: 2px solid #f44336 !important; }
+        .stock-badge { position: absolute; top: 8px; right: 8px; background: #f44336; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <div class="bg-green-700 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <h1 class="text-4xl font-bold">🌸 CATALOG HOA ĐẸP - QUẢN TRỊ</h1>
+            <p class="mt-2 text-green-100">Chào mừng bạn trở lại! <span id="user-email" class="font-bold"></span></p>
+        </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div id="stats" class="bg-white border-b shadow">
+        <div class="max-w-7xl mx-auto px-6 py-4 grid grid-cols-4 gap-4">
+            <div class="text-center">
+                <div id="total-flowers" class="text-3xl font-bold text-green-600">0</div>
+                <div class="text-sm text-gray-600">Tổng sản phẩm</div>
+            </div>
+            <div class="text-center">
+                <div id="total-types" class="text-3xl font-bold text-blue-600">0</div>
+                <div class="text-sm text-gray-600">Loại hoa</div>
+            </div>
+            <div class="text-center">
+                <div id="total-value" class="text-3xl font-bold text-pink-600">0M</div>
+                <div class="text-sm text-gray-600">Tổng giá trị</div>
+            </div>
+            <div class="text-center">
+                <div id="low-stock" class="text-3xl font-bold text-red-600">0</div>
+                <div class="text-sm text-gray-600">Sắp hết hàng</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Toolbar -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex flex-wrap gap-4 items-center mb-4">
+                <input id="search" type="text" placeholder="Tìm kiếm hoa..." class="flex-1 min-w-[200px] px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"/>
+                <select id="filter-type" class="px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none">
+                    <option>Tất cả</option>
+                </select>
+                <input id="filter-tags" type="text" placeholder="Lọc theo tag..." class="px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none w-40"/>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input id="filter-low-stock" type="checkbox" class="w-5 h-5">
+                    <span class="text-sm font-bold text-red-600">Sắp hết hàng</span>
+                </label>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button onclick="openModal()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    ➕ Thêm hoa
+                </button>
+                <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    📊 Xuất Excel
+                </button>
+                <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    📄 Xuất PDF
+                </button>
+                <button onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    🔄 Làm mới
+                </button>
+                <button onclick="window.location.href='users.html'" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                         Người dùng
+                </button>
+                <button onclick="logout()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition">
+                    🚪 Đăng xuất
+                </button>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-center items-center gap-4 mb-6">
+            <button onclick="prevPage()" class="px-6 py-2 bg-white border-2 border-gray-300 rounded-lg font-bold hover:bg-gray-50">Trước</button>
+            <span id="page-info" class="font-bold text-lg text-red-600">Trang 1 / 1</span>
+            <button onclick="nextPage()" class="px-6 py-2 bg-white border-2 border-gray-300 rounded-lg font-bold hover:bg-gray-50">Sau</button>
+        </div>
+
+        <!-- Flower Grid -->
+        <div id="flower-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6"></div>
+        <div id="empty-state" class="hidden text-center py-20 text-gray-400">
+            <p class="text-xl">Chưa có sản phẩm nào</p>
+            <p class="mt-2">Nhấn "Thêm hoa" để bắt đầu!</p>
+        </div>
+    </div>
+
+    <!-- Modal (giữ nguyên như cũ) -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl max-w-2xl w-full my-8">
+            <div class="bg-green-700 text-white p-6 flex justify-between items-center rounded-t-xl">
+                <h2 id="modal-title" class="text-2xl font-bold">Thêm hoa mới</h2>
+                <button onclick="closeModal()" class="text-2xl hover:text-red-300">✕</button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <input type="hidden" id="edit-id">
+                <div><label class="block font-bold mb-2">Tên hoa *</label><input id="flower-name" type="text" required class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-green-500 focus:outline-none" placeholder="Nhập tên hoa..."></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block font-bold mb-2">Giá (VNĐ) *</label><input id="flower-price" type="number" required min="0" class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-green-500 focus:outline-none"></div>
+                    <div><label class="block font-bold mb-2">Tồn kho *</label><input id="flower-stock" type="number" required min="0" value="0" class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-green-500 focus:outline-none"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block font-bold mb-2">Loại hoa *</label><select id="flower-type" class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-green-500 focus:outline-none"></select></div>
+                    <div><label class="block font-bold mb-2">Quy cách *</label><select id="flower-unit" class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-green-500 focus:outline-none"></select></div>
+                </div>
+                <div>
+                    <label class="block font-bold mb-2">Tags (phân cách bởi dấu phẩy)</label>
+                    <input id="flower-tags" type="text" class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-green-500 focus:outline-none" placeholder="hot, new, sale...">
+                    <div class="mt-2 text-sm text-gray-500">
+                        Gợi ý: <span class="tag tag-hot cursor-pointer" onclick="addTag('hot')">hot</span>
+                        <span class="tag tag-new cursor-pointer" onclick="addTag('new')">new</span>
+                        <span class="tag tag-sale cursor-pointer" onclick="addTag('sale')">sale</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold mb-2">Hình ảnh</label>
+                    <input id="flower-image" type="file" accept="image/*" class="w-full border-2 border-gray-300 rounded-lg p-3">
+                    <img id="preview" class="hidden mt-4 w-48 h-48 object-cover rounded-lg mx-auto">
+                </div>
+                <button onclick="saveFlower()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition">
+                    💾 LƯU THÔNG TIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === BẢO VỆ ĐĂNG NHẬP - ĐÃ THAY KEY CỦA BẠN ===
+        const SUPABASE_URL = 'https://ltyzhztlzsnymdgedkcl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eXpoenRsenNueW1kZ2Vka2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDQ4MDcsImV4cCI6MjA3ODkyMDgwN30.dN5mkCSxsIpbwMDQix1UffdQgapQsPbNCeoBZgQxDEA';
+
+        const token = localStorage.getItem('sb-flower-token');
+        if (!token) {
+            alert('Bạn cần đăng nhập để truy cập trang quản trị!');
+            window.location.href = 'login.html';
+        }
+
+        // Tự động thêm token vào mọi request
+        const originalFetch = window.fetch;
+        window.fetch = async (url, options = {}) => {
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`,
+                'apikey': SUPABASE_ANON_KEY
+            };
+            return originalFetch(url, options);
+        };
+
+        // Hàm đăng xuất
+        function logout() {
+            if (confirm('Đăng xuất ngay?')) {
+                localStorage.removeItem('sb-flower-token');
+                window.location.href = 'login.html';
+            }
+        }
+
+        const API_URL = 'http://localhost:8000';
+        let flowers = [], flowerTypes = [], unitTypes = [], currentPage = 0;
+        const itemsPerPage = 15;
+
+        const typeColors = {
+            'Hồng môn': '#ffebee', 'Lan': '#e8f5e9', 'Tùng': '#fff3e0',
+            'Mimosa': '#fff9c4', 'Lá trang trí': '#e0f2f1', 'Khác': '#f5f5f5'
+        };
+
+        // === TẤT CẢ CÁC HÀM CŨ (giữ nguyên 100%) ===
+        async function fetchFlowers() {
+            try {
+                const search = document.getElementById('search').value;
+                const type = document.getElementById('filter-type').value;
+                const tags = document.getElementById('filter-tags').value;
+                const lowStock = document.getElementById('filter-low-stock').checked;
+                const params = new URLSearchParams();
+                if (search) params.append('search', search);
+                if (type !== 'Tất cả') params.append('type', type);
+                if (tags) params.append('tags', tags);
+                if (lowStock) params.append('low_stock', 'true');
+                const res = await fetch(`${API_URL}/flowers?${params}`);
+                const data = await res.json();
+                flowers = data.flowers || [];
+                displayFlowers();
+            } catch (err) {
+                console.error(err);
+                alert('Lỗi kết nối backend!');
+            }
+        }
+
+        async function fetchTypes() {
+            const res = await fetch(`${API_URL}/flower-types`);
+            const data = await res.json();
+            flowerTypes = data.types || [];
+            const filterSelect = document.getElementById('filter-type');
+            const typeSelect = document.getElementById('flower-type');
+            filterSelect.innerHTML = '<option>Tất cả</option>';
+            typeSelect.innerHTML = '';
+            flowerTypes.forEach(t => {
+                filterSelect.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+                typeSelect.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+            });
+        }
+
+        async function fetchUnits() {
+            const res = await fetch(`${API_URL}/unit-types`);
+            const data = await res.json();
+            unitTypes = data.units || [];
+            const unitSelect = document.getElementById('flower-unit');
+            unitSelect.innerHTML = '';
+            unitTypes.forEach(u => unitSelect.innerHTML += `<option value="${u.name}">${u.name}</option>`);
+        }
+
+        async function fetchStats() {
+            const res = await fetch(`${API_URL}/stats`);
+            const data = await res.json();
+            document.getElementById('total-flowers').textContent = data.total_flowers;
+            document.getElementById('total-types').textContent = data.total_types;
+            document.getElementById('total-value').textContent = (data.total_value / 1000000).toFixed(1) + 'M';
+            document.getElementById('low-stock').textContent = data.low_stock_count;
+        }
+
+        function displayFlowers() {
+            const grid = document.getElementById('flower-grid');
+            const empty = document.getElementById('empty-state');
+            if (flowers.length === 0) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            const totalPages = Math.ceil(flowers.length / itemsPerPage);
+            const start = currentPage * itemsPerPage;
+            const pageFlowers = flowers.slice(start, start + itemsPerPage);
+            document.getElementById('page-info').textContent = `Trang ${currentPage + 1} / ${totalPages || 1}`;
+            grid.innerHTML = pageFlowers.map(f => {
+                const tags = f.tags ? f.tags.split(',').map(t => t.trim()).filter(t => t) : [];
+                const isLow = f.stock <= 10;
+                return `
+                <div class="flower-card bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl ${isLow ? 'low-stock' : ''}" style="background-color: ${typeColors[f.type] || '#f5f5f5'}">
+                    <div class="aspect-square bg-white p-4 relative">
+                        ${isLow ? `<div class="stock-badge">⚠️ Còn ${f.stock}</div>` : ''}
+                        ${f.image_url ? `<img src="${f.image_url}" class="w-full h-full object-cover rounded-lg">` : `<div class="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">No Image</div>`}
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-sm mb-1 line-clamp-2">${f.name}</h3>
+                        <div class="text-xl font-bold text-red-600 mb-1">${f.price.toLocaleString('vi-VN')} đ</div>
+                        <div class="text-xs text-gray-600 mb-2">${f.type} • ${f.unit}</div>
+                        <div class="text-xs mb-2"><span class="font-bold">Tồn:</span> <span class="${isLow?'text-red-600 font-bold':'text-green-600'}">${f.stock}</span></div>
+                        ${tags.length ? `<div class="mb-2">${tags.map(t=>`<span class="tag tag-${t}">${t}</span>`).join('')}</div>` : ''}
+                        <div class="flex gap-2">
+                            <button onclick='editFlower(${JSON.stringify(f)})' class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-bold">✏️ Sửa</button>
+                            <button onclick="deleteFlower('${f.id}', '${f.name}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold">🗑️ Xóa</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Modal, save, delete, export... (giữ nguyên như cũ)
+        function openModal() { document.getElementById('modal').classList.remove('hidden'); document.getElementById('modal-title').textContent = 'Thêm hoa mới'; document.getElementById('edit-id').value = ''; document.getElementById('flower-name').value = ''; document.getElementById('flower-price').value = ''; document.getElementById('flower-stock').value = '0'; document.getElementById('flower-tags').value = ''; document.getElementById('flower-image').value = ''; document.getElementById('preview').classList.add('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function editFlower(f) { document.getElementById('modal').classList.remove('hidden'); document.getElementById('modal-title').textContent = 'Sửa hoa'; document.getElementById('edit-id').value = f.id; document.getElementById('flower-name').value = f.name; document.getElementById('flower-price').value = f.price; document.getElementById('flower-stock').value = f.stock || 0; document.getElementById('flower-tags').value = f.tags || ''; document.getElementById('flower-type').value = f.type; document.getElementById('flower-unit').value = f.unit; if (f.image_url) { document.getElementById('preview').src = f.image_url; document.getElementById('preview').classList.remove('hidden'); } }
+        function addTag(tag) { const input = document.getElementById('flower-tags'); const cur = input.value.trim(); input.value = cur ? cur + ', ' + tag : tag; }
+
+        async function saveFlower() {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('flower-name').value.trim();
+            const price = document.getElementById('flower-price').value;
+            const stock = document.getElementById('flower-stock').value;
+            const tags = document.getElementById('flower-tags').value.trim();
+            const type = document.getElementById('flower-type').value;
+            const unit = document.getElementById('flower-unit').value;
+            const image = document.getElementById('flower-image').files[0];
+
+            if (!name || !price) return alert('Vui lòng nhập đầy đủ tên và giá!');
+
+            const form = new FormData();
+            form.append('name', name); form.append('price', price); form.append('stock', stock);
+            form.append('tags', tags); form.append('type', type); form.append('unit', unit);
+            if (image) form.append('image', image);
+
+            const url = id ? `${API_URL}/flowers/${id}` : `${API_URL}/flowers`;
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, { method, body: form });
+                if (res.ok) { closeModal(); refreshData(); alert(id ? 'Đã cập nhật!' : 'Đã thêm thành công!'); }
+                else { const err = await res.json(); alert(err.detail || 'Lỗi server'); }
+            } catch (e) { alert('Lỗi kết nối!'); }
+        }
+
+        async function deleteFlower(id, name) {
+            if (!confirm(`Xóa "${name}"?\nKhông thể khôi phục!`)) return;
+            await fetch(`${API_URL}/flowers/${id}`, { method: 'DELETE' });
+            refreshData();
+        }
+
+        async function exportExcel() {
+            const type = document.getElementById('filter-type').value;
+            const url = type !== 'Tất cả' ? `${API_URL}/export/excel?type=${type}` : `${API_URL}/export/excel`;
+            const a = document.createElement('a'); a.href = url; a.download = ''; a.click();
+        }
+
+        async function exportPDF() {
+            const type = document.getElementById('filter-type').value;
+            const url = type !== 'Tất cả' ? `${API_URL}/export/pdf?type=${type}` : `${API_URL}/export/pdf`;
+            const a = document.createElement('a'); a.href = url; a.download = ''; a.click();
+        }
+
+        function prevPage() { if (currentPage > 0) { currentPage--; displayFlowers(); } }
+        function nextPage() { if (currentPage < Math.ceil(flowers.length / itemsPerPage) - 1) { currentPage++; displayFlowers(); } }
+
+        async function refreshData() {
+            await Promise.all([fetchFlowers(), fetchTypes(), fetchUnits(), fetchStats()]);
+        }
+
+        document.getElementById('flower-image').addEventListener('change', e => {
+            if (e.target.files[0]) {
+                document.getElementById('preview').src = URL.createObjectURL(e.target.files[0]);
+                document.getElementById('preview').classList.remove('hidden');
+            }
+        });
+
+        ['search', 'filter-type', 'filter-tags'].forEach(id => document.getElementById(id).addEventListener('input', fetchFlowers));
+        document.getElementById('filter-low-stock').addEventListener('change', fetchFlowers);
+
+        // Khởi động
+        refreshData();
+    </script>
+</body>
+</html>

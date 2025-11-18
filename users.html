@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Người Dùng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-xl">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <h1 class="text-4xl font-bold">Quản Lý Người Dùng</h1>
+      <p class="mt-2 opacity-90">Chỉ Admin mới thấy trang này</p>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="bg-white rounded-2xl shadow-xl p-8">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-bold text-gray-800">Danh sách tài khoản</h2>
+        <button onclick="location.reload()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold">
+          Làm mới
+        </button>
+      </div>
+
+      <div id="loading" class="text-center py-20 text-xl text-gray-600">Đang tải danh sách...</div>
+      <div id="users-table" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 hidden"></div>
+      <div id="error" class="text-center py-20 text-red-600 text-xl hidden"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+    const supabase = createClient('https://ltyzhztlzsnymdgedkcl.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0eXpoenRsenNueW1kZ2Vka2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDQ4MDcsImV4cCI6MjA3ODkyMDgwN30.dN5mkCSxsIpbwMDQix1UffdQgapQsPbNCeoBZgQxDEA')
+
+    const access = localStorage.getItem('sb-flower-token')
+    const refresh = localStorage.getItem('sb-flower-refresh')
+    if (!access || !refresh) { alert('Chưa đăng nhập!'); window.location.href = 'login.html' }
+
+    await supabase.auth.setSession({ access_token: access, refresh_token: refresh })
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { localStorage.clear(); window.location.href = 'login.html' }
+
+    // TỰ ĐỘNG TẠO PROFILE + LÀM ADMIN NẾU CHƯA CÓ
+    let { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+    if (!profile) {
+      await supabase.from('profiles').insert({
+        id: user.id,
+        email: user.email,
+        full_name: user.email.split('@')[0],
+        role: 'admin'  // TỰ ĐỘNG LÀM ADMIN LẦN ĐẦU
+      })
+      profile = { role: 'admin' }
+    }
+
+    if (profile.role !== 'admin') {
+      alert('Chỉ Admin mới được vào trang này!')
+      window.location.href = 'admin.html'
+      return
+    }
+
+    // HIỂN THỊ DANH SÁCH
+    const { data: users } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+    document.getElementById('loading').classList.add('hidden')
+    document.getElementById('users-table').classList.remove('hidden')
+    document.getElementById('users-table').innerHTML = users.map(u => `
+      <div class="bg-white border-2 border-purple-200 rounded-2xl p-6 hover:shadow-2xl transition">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+            ${u.full_name?.[0]?.toUpperCase() || u.email[0].toUpperCase()}
+          </div>
+          <div>
+            <h3 class="font-bold text-xl">${u.full_name || 'Chưa đặt tên'}</h3>
+            <p class="text-gray-600">${u.email}</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="px-4 py-2 rounded-full text-white font-bold text-sm ${u.role==='admin'?'bg-red-600':u.role==='staff'?'bg-amber-600':'bg-indigo-600'}">
+            ${u.role.toUpperCase()}
+          </span>
+          <select onchange="supabase.from('profiles').update({role:this.value}).eq('id','${u.id}').then(()=>location.reload())" class="border-2 rounded-lg px-4 py-2">
+            <option value="viewer" ${u.role==='viewer'?'selected':''}>Viewer</option>
+            <option value="staff" ${u.role==='staff'?'selected':''}>Staff</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+          </select>
+        </div>
+      </div>
+    `).join('')
+  </script>
+</body>
+</html>
